@@ -4,7 +4,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:debug": "nodemon --config nodemon.json --inspect ./src/index.ts"
+    "start:debug": "nodemon --config nodemon.json --inspect ./src/Container.ts"
   },
   "keywords": [],
   "author": "",
