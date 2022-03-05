@@ -4,7 +4,8 @@
   "main": "./src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:debug": "nodemon --config nodemon.json --inspect ./src/Container.ts"
+    "start:debug": "nodemon --config nodemon.json --inspect ./src/ContainerJS.js",
+    "express": "nodemon --inspect ./src/controllers/server.js"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +19,8 @@
     "nodemon": "^2.0.12",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
   }
 }

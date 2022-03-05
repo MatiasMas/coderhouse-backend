@@ -1,49 +1,26 @@
-import fs from 'fs'
+const fs = require('fs')
 
-type ProductType = {
-    id?: number
-    title: string
-    price: number
-    thumbnail: string
-}
+class Container {
+    fileName
+    maxId
+    products
 
-interface ContainerType {
-    products: ProductType[]
-    maxId: number
-    fileName: string
-
-    save(product: ProductType): Promise<number>
-
-    getById(id: number): ProductType
-
-    getAll(): Promise<ProductType[]>
-
-    deleteById(id: number): Promise<void>
-
-    deleteAll(): Promise<void>
-}
-
-class Container implements ContainerType {
-    fileName: string
-    maxId: number
-    products: ProductType[]
-
-    constructor(fileName: string) {
+    constructor(fileName) {
         this.fileName = fileName
         this.maxId = 0
         this.products = []
     }
 
-    async deleteAll(): Promise<void> {
+    async deleteAll() {
         this.products = []
         try {
             await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify([]))
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(error)
         }
     }
 
-    async deleteById(id: number): Promise<void> {
+    async deleteById(id) {
         const product = this.getById(id)
 
         const index = this.products.indexOf(product)
@@ -52,25 +29,25 @@ class Container implements ContainerType {
         this.maxId--
     }
 
-    async getAll(): Promise<ProductType[]> {
+    async getAll() {
         try {
-            const products: ProductType[] = JSON.parse(await fs.promises.readFile(`src/${this.fileName}`, 'utf-8'))
+            const products = JSON.parse(await fs.promises.readFile(`src/${this.fileName}`, 'utf-8'))
             this.products = products
 
-            this.products.map((product: ProductType) => {
+            this.products.map((product) => {
                 if (product.id && this.maxId < product.id) {
                     this.maxId = product.id
                 }
             })
 
             return this.products
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(error)
         }
     }
 
-    getById(id: number): ProductType {
-        const product = this.products.find((product: ProductType) => product.id === id)
+    getById(id) {
+        const product = this.products.find((product) => product.id === id)
 
         if (product == null) {
             throw new Error(`The product with ID: ${id} doesn't exist in the container.`)
@@ -79,7 +56,7 @@ class Container implements ContainerType {
         return product
     }
 
-    async save(product: ProductType): Promise<number> {
+    async save(product) {
         await this.getAll()
         this.maxId++
         product.id = this.maxId
@@ -88,7 +65,7 @@ class Container implements ContainerType {
         try {
             await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify(this.products))
             return product.id
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(error)
         }
 
