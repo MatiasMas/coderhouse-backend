@@ -56,6 +56,20 @@ class Container {
         return product
     }
 
+    async updateProduct(product) {
+        let prod = this.getById(product.id)
+
+        if (prod) {
+            let index = this.products.indexOf(prod);
+
+            this.products[index].title = product.title
+            this.products[index].price = product.price
+            this.products[index].thumbnail = product.thumbnail
+
+            await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify(this.products))
+        }
+    }
+
     async save(product) {
         await this.getAll()
         this.maxId++
