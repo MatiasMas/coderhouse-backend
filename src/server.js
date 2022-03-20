@@ -10,10 +10,10 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.static('./src/public'))
 
 app.set('views', './src/views')
-app.set('view engine', 'pug')
+app.set('view engine', 'ejs')
 
 router.get('/', async (req, res) => {
-    res.status(200).render('index.pug', {
+    res.status(200).render('pages/index', {
         products: await container.getAll(),
     })
 })
@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
 
     await container.save(product)
 
-    res.status(201).render('index.pug', {
+    res.status(201).render('pages/index', {
         products: await container.getAll(),
     })
 })
