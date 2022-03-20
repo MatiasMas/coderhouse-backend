@@ -1,28 +1,47 @@
 const express = require('express')
-const Container = require('../ContainerJS')
+const Container = require('./ContainerJS')
+const { engine } = require('express-handlebars')
 
 const container = new Container('products.txt')
 const app = express()
+const router = express.Router()
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('./src/public'))
 
-const router = express.Router()
+app.set('views', './src/views')
+app.set('view engine', 'hbs')
+
+app.engine(
+    'hbs',
+    engine({
+        extname: '.hbs',
+        defaultLayout: 'index.hbs',
+        layoutsDir: __dirname + '/views/layouts',
+        partialsDir: __dirname + '/views/partials',
+    }),
+)
 
 router.get('/', async (req, res) => {
-    res.status(200).json(await container.getAll())
+    res.status(200).render('main', {
+        products: await container.getAll(),
+    })
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { body } = req
     const product = {
         title: body.name,
         price: parseInt(body.price),
-        thumbnail: body.thumbnail
+        thumbnail: body.thumbnail,
     }
 
-    container.save(product)
-    res.status(201).send("The product has been added.")
+    await container.save(product)
+
+    res.status(201).render('main', {
+        products: await container.getAll(),
+    })
 })
 
 router.get('/randomProduct', async (req, res) => {
@@ -32,7 +51,7 @@ router.get('/randomProduct', async (req, res) => {
         )
     }
 
-    const products = await container.getAll()
+    await container.getAll()
 
     res.status(200).json(await container.getById(randomNumberInRange(1, container.products.length)))
 })
@@ -63,12 +82,12 @@ router.put('/:id', (req, res) => {
         title: body.title,
         price: parseInt(body.price),
         thumbnail: body.thumbnail,
-        id: parseInt(id)
+        id: parseInt(id),
     }
 
     container.updateProduct(newProduct)
 
-    res.status(200).send("The product has been updated.")
+    res.status(200).send('The product has been updated.')
 })
 
 router.delete('/:id', (req, res) => {
