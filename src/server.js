@@ -1,6 +1,5 @@
 const express = require('express')
 const Container = require('./ContainerJS')
-const { engine } = require('express-handlebars')
 
 const container = new Container('products.txt')
 const app = express()
@@ -11,20 +10,10 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.static('./src/public'))
 
 app.set('views', './src/views')
-app.set('view engine', 'hbs')
-
-app.engine(
-    'hbs',
-    engine({
-        extname: '.hbs',
-        defaultLayout: 'index.hbs',
-        layoutsDir: __dirname + '/views/layouts',
-        partialsDir: __dirname + '/views/partials',
-    }),
-)
+app.set('view engine', 'pug')
 
 router.get('/', async (req, res) => {
-    res.status(200).render('main', {
+    res.status(200).render('index.pug', {
         products: await container.getAll(),
     })
 })
@@ -39,7 +28,7 @@ router.post('/', async (req, res) => {
 
     await container.save(product)
 
-    res.status(201).render('main', {
+    res.status(201).render('index.pug', {
         products: await container.getAll(),
     })
 })

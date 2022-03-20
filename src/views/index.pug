@@ -1,0 +1,8 @@
+html
+    head
+        title 'Products List'
+    body
+        ul
+            for product in products
+                li Product Name: #{product.title}, Price: #{product.price}
+        a(href='/') Add New Product
