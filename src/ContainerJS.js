@@ -4,11 +4,13 @@ class Container {
     fileName
     maxId
     products
+    messages
 
     constructor(fileName) {
         this.fileName = fileName
         this.maxId = 0
         this.products = []
+        this.messages = []
     }
 
     async deleteAll() {
@@ -41,6 +43,16 @@ class Container {
             })
 
             return this.products
+        } catch (error) {
+            throw new Error(error)
+        }
+    }
+
+    async getAllMessages() {
+        try {
+            this.messages = JSON.parse(await fs.promises.readFile(`src/messages.txt`, 'utf-8'))
+
+            return this.messages
         } catch (error) {
             throw new Error(error)
         }
@@ -79,6 +91,18 @@ class Container {
         try {
             await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify(this.products))
             return product.id
+        } catch (error) {
+            throw new Error(error)
+        }
+
+    }
+
+    async saveMessage(message) {
+        await this.getAllMessages()
+        this.messages.push(message)
+
+        try {
+            await fs.promises.writeFile(`src/messages.txt`, JSON.stringify(this.messages))
         } catch (error) {
             throw new Error(error)
         }

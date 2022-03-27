@@ -3,9 +3,10 @@
 <head>
     <meta charset='UTF-8'>
     <title>Test Node</title>
+    <link rel='stylesheet' href='styles.css'>
 </head>
 <body>
-<form action='/api/products' method='POST' target='/'>
+<form id='add-product-form' onsubmit='addProduct();return false'>
     <label for='name'>Product Name: </label>
     <input type='text' id='name' name='name' />
     <label for='price'>Price: </label>
@@ -13,7 +14,85 @@
     <label for='thumbnail'>Thumbnail: </label>
     <input type='text' id='thumbnail' name='thumbnail' />
     <button type='submit'>Save Product</button>
-    <a href='/api/products'>Products List</a>
 </form>
+<a id='products-link' href='/api/products'>Products List</a>
+
+<ul id='products'></ul>
+
+<div id='message-center'>
+    <h1 id='message-center-title'>Message Center</h1>
+    <div id='messages-organizer'>
+        <form id='message-fields' onsubmit='addMessage();return false'>
+            <label for='email'>Email: </label>
+            <input type='text' id='email' name='email' />
+            <label for='message'>Message: </label>
+            <input type='text' id='message' name='message' />
+            <button type='submit'>Send Message</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+    </div>
+</div>
+
+<script src='/socket.io/socket.io.js'></script>
+<script>
+    const socket = io()
+
+    socket.on('savedProducts', (data) => {
+        let innerText = ''
+        data.map((product) => {
+            innerText += `
+            <li>
+                <div>Product Name: ${product.title}</div>
+                <div>Price: ${product.price}</div>
+                <img src='${product.thumbnail}' alt='${product.title}'/>
+            </li>
+            `
+        })
+
+        document.getElementById('products').innerHTML = innerText
+    })
+
+    socket.on('savedMessages', (data) => {
+        let innerText = ''
+        data.map((message) => {
+            innerText += `
+            <li>
+                <div><span class='message-email'>${message.email}</span> <span class='message-date'>[${message.date}]:</span> <span class='message-message'>${message.message}</span></div>
+            </li>
+            `
+        })
+
+        document.getElementById('messages').innerHTML = innerText
+    })
+
+    const addProduct = () => {
+        let productName = document.getElementById('name').value
+        let productPrice = document.getElementById('price').value
+        let productThumbnail = 'https://picsum.photos/30'
+
+        socket.emit('addProduct', {
+            productName,
+            productPrice,
+            productThumbnail,
+        })
+
+        document.getElementById('name').value = ''
+        document.getElementById('price').value = ''
+        document.getElementById('thumbnail').value = 'https://picsum.photos/30'
+    }
+
+    const addMessage = () => {
+        let email = document.getElementById('email').value
+        let message = document.getElementById('message').value
+
+        socket.emit('addMessage', {
+            email,
+            message,
+        })
+
+        document.getElementById('message').value = ''
+    }
+</script>
 </body>
 </html>

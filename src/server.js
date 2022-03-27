@@ -1,10 +1,52 @@
 const express = require('express')
 const Container = require('./ContainerJS')
 const { engine } = require('express-handlebars')
+const http = require('http')
+const { Server } = require('socket.io')
 
 const container = new Container('products.txt')
 const app = express()
+const server = http.createServer(app)
+const io = new Server(server)
 const router = express.Router()
+
+let products = []
+let messages = []
+
+io.on('connection', async (socket) => {
+    console.log('User connected...')
+    products = await container.getAll()
+    messages = await container.getAllMessages()
+
+    io.sockets.emit('savedProducts', products)
+    io.sockets.emit('savedMessages', messages)
+
+    socket.on('addProduct', async (data) => {
+        await container.save({
+            title: data.productName,
+            price: data.productPrice,
+            thumbnail: data.productThumbnail
+        })
+
+        products = await container.getAll()
+        io.sockets.emit('savedProducts', products)
+    })
+
+    socket.on('addMessage', async (data) => {
+        await container.saveMessage({
+            email: data.email,
+            date: new Date().toLocaleDateString(),
+            message: data.message
+        })
+
+        messages = await container.getAllMessages()
+        io.sockets.emit('savedMessages', messages)
+    })
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected...')
+    })
+})
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -24,24 +66,31 @@ app.engine(
 )
 
 router.get('/', async (req, res) => {
+    products = await container.getAll()
     res.status(200).render('main', {
-        products: await container.getAll(),
+        products: products,
     })
 })
 
 router.post('/', async (req, res) => {
     const { body } = req
-    const product = {
-        title: body.name,
-        price: parseInt(body.price),
-        thumbnail: body.thumbnail,
+
+    if (req.body.name && req.body.price && req.body.thumbnail) {
+        const product = {
+            title: body.name,
+            price: parseInt(body.price),
+            thumbnail: body.thumbnail,
+        }
+
+        await container.save(product)
+
+        res.status(201).render('main', {
+            products: await container.getAll(),
+        })
+    } else {
+        res.status(404).send('You must complete the fields before entering any product.')
     }
 
-    await container.save(product)
-
-    res.status(201).render('main', {
-        products: await container.getAll(),
-    })
 })
 
 router.get('/randomProduct', async (req, res) => {
@@ -106,7 +155,7 @@ router.delete('/:id', (req, res) => {
 app.use('/api/products', router)
 
 const PORT = 8080
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server has initiated on port http://localhost:${PORT}`)
 })
 server.on('error', (err) => console.log(err))
