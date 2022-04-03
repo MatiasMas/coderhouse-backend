@@ -9,10 +9,16 @@
 <form id='add-product-form' onsubmit='addProduct();return false'>
     <label for='name'>Product Name: </label>
     <input type='text' id='name' name='name' />
+    <label for='description'>Product Description: </label>
+    <input type='text' id='description' name='description' />
+    <label for='code'>Product Code: </label>
+    <input type='text' id='code' name='code' />
     <label for='price'>Price: </label>
-    <input type='text' id='price' name='price' />
-    <label for='thumbnail'>Thumbnail: </label>
-    <input type='text' id='thumbnail' name='thumbnail' />
+    <input type='number' id='price' name='price' />
+    <label for='stock'>Stock: </label>
+    <input type='number' id='stock' name='stock' />
+    <label for='image'>Link to image: </label>
+    <input type='text' id='image' name='image' />
     <button type='submit'>Save Product</button>
 </form>
 <a id='products-link' href='/api/products'>Products List</a>
@@ -43,9 +49,12 @@
         data.map((product) => {
             innerText += `
             <li>
-                <div>Product Name: ${product.title}</div>
+                <div>Product Name: ${product.name}</div>
+                <div>Product Description: ${product.description}</div>
+                <div>Product Code: ${product.code}</div>
                 <div>Price: ${product.price}</div>
-                <img src='${product.thumbnail}' alt='${product.title}'/>
+                <div>Stock: ${product.stock}</div>
+                <img src='${product.image}' alt='${product.name}'/>
             </li>
             `
         })
@@ -68,18 +77,27 @@
 
     const addProduct = () => {
         let productName = document.getElementById('name').value
+        let productDescription = document.getElementById('description').value
+        let productCode = document.getElementById('code').value
         let productPrice = document.getElementById('price').value
-        let productThumbnail = 'https://picsum.photos/30'
+        let productStock = document.getElementById('stock').value
+        let productImage = 'https://picsum.photos/30'
 
         socket.emit('addProduct', {
             productName,
+            productDescription,
+            productCode,
             productPrice,
-            productThumbnail,
+            productStock,
+            productImage,
         })
 
         document.getElementById('name').value = ''
+        document.getElementById('description').value = ''
+        document.getElementById('code').value = ''
         document.getElementById('price').value = ''
-        document.getElementById('thumbnail').value = 'https://picsum.photos/30'
+        document.getElementById('stock').value = ''
+        document.getElementById('image').value = 'https://picsum.photos/30'
     }
 
     const addMessage = () => {

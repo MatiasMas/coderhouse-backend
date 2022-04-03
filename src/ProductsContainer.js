@@ -1,6 +1,6 @@
 const fs = require('fs')
 
-class Container {
+class ProductsContainer {
     fileName
     maxId
     products
@@ -17,6 +17,7 @@ class Container {
         this.products = []
         try {
             await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify([]))
+            this.maxId = 0
         } catch (error) {
             throw new Error(error)
         }
@@ -33,8 +34,7 @@ class Container {
 
     async getAll() {
         try {
-            const products = JSON.parse(await fs.promises.readFile(`src/${this.fileName}`, 'utf-8'))
-            this.products = products
+            this.products = JSON.parse(await fs.promises.readFile(`src/${this.fileName}`, 'utf-8'))
 
             this.products.map((product) => {
                 if (product.id && this.maxId < product.id) {
@@ -74,9 +74,13 @@ class Container {
         if (prod) {
             let index = this.products.indexOf(prod);
 
-            this.products[index].title = product.title
+            this.products[index].timestamp = product.timestamp
+            this.products[index].name = product.name
+            this.products[index].description = product.description
+            this.products[index].code = product.code
+            this.products[index].image = product.image
             this.products[index].price = product.price
-            this.products[index].thumbnail = product.thumbnail
+            this.products[index].stock = product.stock
 
             await fs.promises.writeFile(`src/${this.fileName}`, JSON.stringify(this.products))
         }
@@ -110,4 +114,4 @@ class Container {
     }
 }
 
-module.exports = Container
+module.exports = ProductsContainer

@@ -1,45 +1,54 @@
 const express = require('express')
-const Container = require('./ContainerJS')
+const ProductsContainer = require('./ProductsContainer')
+const CartsContainer = require('./CartsContainer')
 const { engine } = require('express-handlebars')
 const http = require('http')
 const { Server } = require('socket.io')
 
-const container = new Container('products.txt')
+const productsContainer = new ProductsContainer('products.txt')
+const cartsContainer = new CartsContainer('carts.txt')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
-const router = express.Router()
+const productsRouter = express.Router()
+const cartsRouter = express.Router()
 
 let products = []
+let productsInCart = []
 let messages = []
+let carts = []
 
 io.on('connection', async (socket) => {
     console.log('User connected...')
-    products = await container.getAll()
-    messages = await container.getAllMessages()
+    products = await productsContainer.getAll()
+    messages = await productsContainer.getAllMessages()
 
     io.sockets.emit('savedProducts', products)
     io.sockets.emit('savedMessages', messages)
 
     socket.on('addProduct', async (data) => {
-        await container.save({
-            title: data.productName,
+        await productsContainer.save({
+            timestamp: Date.now(),
+            name: data.productName,
+            description: data.productDescription,
+            code: data.productCode,
             price: data.productPrice,
-            thumbnail: data.productThumbnail
+            stock: data.productStock,
+            image: data.productImage,
         })
 
-        products = await container.getAll()
+        products = await productsContainer.getAll()
         io.sockets.emit('savedProducts', products)
     })
 
     socket.on('addMessage', async (data) => {
-        await container.saveMessage({
+        await productsContainer.saveMessage({
             email: data.email,
             date: new Date().toLocaleDateString(),
-            message: data.message
+            message: data.message,
         })
 
-        messages = await container.getAllMessages()
+        messages = await productsContainer.getAllMessages()
         io.sockets.emit('savedMessages', messages)
     })
 
@@ -65,55 +74,60 @@ app.engine(
     }),
 )
 
-router.get('/', async (req, res) => {
-    products = await container.getAll()
+///////////////////////// Products API ///////////////////////
+
+productsRouter.get('/', async (req, res) => {
+    products = await productsContainer.getAll()
     res.status(200).render('main', {
         products: products,
     })
 })
 
-router.post('/', async (req, res) => {
+productsRouter.post('/', async (req, res) => {
     const { body } = req
 
-    if (req.body.name && req.body.price && req.body.thumbnail) {
+    if (req.body.name && req.body.price && req.body.image && req.body.description && req.body.code && req.body.stock) {
         const product = {
-            title: body.name,
+            timestamp: Date.now(),
+            name: body.name,
+            description: body.description,
+            code: body.code,
+            image: body.image,
             price: parseInt(body.price),
-            thumbnail: body.thumbnail,
+            stock: parseInt(body.stock),
         }
 
-        await container.save(product)
+        await productsContainer.save(product)
 
         res.status(201).render('main', {
-            products: await container.getAll(),
+            products: await productsContainer.getAll(),
         })
     } else {
         res.status(404).send('You must complete the fields before entering any product.')
     }
-
 })
 
-router.get('/randomProduct', async (req, res) => {
+productsRouter.get('/randomProduct', async (req, res) => {
     const randomNumberInRange = (min, max) => {
         return Math.floor(
             Math.random() * (max - min + 1) + min,
         )
     }
 
-    await container.getAll()
+    await productsContainer.getAll()
 
-    res.status(200).json(await container.getById(randomNumberInRange(1, container.products.length)))
+    res.status(200).json(await productsContainer.getById(randomNumberInRange(1, productsContainer.products.length)))
 })
 
-router.get('/:id', (req, res) => {
+productsRouter.get('/:id', (req, res) => {
     const { id } = req.params
 
     if (isNaN(parseInt(id))) {
         throw new Error('The id is not a number.')
-    } else if (parseInt(id) > container.products.length || parseInt(id) <= 0) {
+    } else if (parseInt(id) > productsContainer.maxId || parseInt(id) <= 0) {
         throw new Error('The id is out of range.')
     } else {
-        const product = container.getById(parseInt(id))
+        const product = productsContainer.getById(parseInt(id))
 
         if (product) {
             res.status(200).json(product)
@@ -123,36 +137,149 @@ router.get('/:id', (req, res) => {
     }
 })
 
-router.put('/:id', (req, res) => {
+productsRouter.put('/:id', async (req, res) => {
     const { id } = req.params
     const { body } = req
 
     const newProduct = {
-        title: body.title,
+        timestamp: Date.now(),
+        name: body.name,
+        description: body.description,
+        code: body.code,
+        image: body.image,
         price: parseInt(body.price),
-        thumbnail: body.thumbnail,
+        stock: parseInt(body.stock),
         id: parseInt(id),
     }
 
-    container.updateProduct(newProduct)
+    await productsContainer.updateProduct(newProduct)
 
     res.status(200).send('The product has been updated.')
 })
 
-router.delete('/:id', (req, res) => {
+productsRouter.delete('/:id', async (req, res) => {
     const { id } = req.params
 
     if (isNaN(parseInt(id))) {
         throw new Error('The id is not a number.')
-    } else if (parseInt(id) > container.products.length || parseInt(id) <= 0) {
+    } else if (parseInt(id) > productsContainer.maxId || parseInt(id) <= 0) {
         throw new Error('The id is out of range.')
     } else {
-        container.deleteById(parseInt(id))
+        await productsContainer.deleteById(parseInt(id))
         res.status(200).send(`The product with id: ${id}, has been deleted.`)
     }
 })
 
-app.use('/api/products', router)
+///////////////////////// Carts API ///////////////////////
+
+cartsRouter.get('/', async (req, res) => {
+    carts = await cartsContainer.getAll()
+    res.status(200).json(carts)
+})
+
+cartsRouter.post('/', async (req, res) => {
+    const { body } = req
+
+    if (req.body.products) {
+        req.body.products.map((product) => {
+            const prod = {
+                id: product.id,
+                timestamp: Date.now(),
+                name: product.name,
+                description: product.description,
+                code: product.code,
+                image: product.image,
+                price: parseInt(product.price),
+                stock: parseInt(product.stock),
+            }
+
+            productsInCart.push(prod)
+        })
+
+        const cart = {
+            timestamp: Date.now(),
+            products: productsInCart,
+        }
+
+        await cartsContainer.save(cart)
+        productsInCart = []
+
+        res.status(201).send('The cart has been created.')
+    } else {
+        res.status(404).send('You must complete the fields before entering any product.')
+    }
+})
+
+cartsRouter.get('/:id/products', (req, res) => {
+    const { id } = req.params
+
+    if (isNaN(parseInt(id))) {
+        throw new Error('The id is not a number.')
+    } else if (parseInt(id) > cartsContainer.maxId || parseInt(id) <= 0) {
+        throw new Error('The id is out of range.')
+    } else {
+        const cart = cartsContainer.getById(parseInt(id))
+
+        if (cart) {
+            res.status(200).json(cart.products)
+        } else {
+            res.status(404).json({ error: 'Product not found.' })
+        }
+    }
+})
+
+cartsRouter.delete('/:id', async (req, res) => {
+    const { id } = req.params
+
+    if (isNaN(parseInt(id))) {
+        throw new Error('The id is not a number.')
+    } else if (parseInt(id) > cartsContainer.maxId || parseInt(id) <= 0) {
+        throw new Error('The id is out of range.')
+    } else {
+        await cartsContainer.deleteById(parseInt(id))
+        res.status(200).send(`The cart with id: ${id}, has been deleted.`)
+    }
+})
+
+cartsRouter.delete('/:idCart/products/:idProduct', async (req, res) => {
+    const { idCart, idProduct } = req.params
+
+    if (isNaN(parseInt(idCart)) || isNaN(parseInt(idProduct))) {
+        throw new Error('One or both id\'s are not a number.')
+    } else if (parseInt(idCart) > cartsContainer.maxId || parseInt(idCart) <= 0) {
+        throw new Error('The cart id is out of range.')
+    } else {
+        await cartsContainer.deleteProductInCartById(parseInt(idCart), parseInt(idProduct))
+        res.status(200).send(`The product with id: ${idProduct}, has been deleted in the cart with id: ${idCart}.`)
+    }
+})
+
+cartsRouter.post('/:id/products', async (req, res) => {
+    const { id } = req.params
+    const { body } = req
+
+    if (req.body) {
+        const prod = {
+            id: body.id,
+            timestamp: Date.now(),
+            name: body.name,
+            description: body.description,
+            code: body.code,
+            image: body.image,
+            price: parseInt(body.price),
+            stock: parseInt(body.stock),
+        }
+
+        await cartsContainer.saveNewProductInCart(parseInt(id), prod)
+
+        res.status(201).send('The cart has been updated.')
+    } else {
+        res.status(404).send('Something went wrong, please check your json body.')
+    }
+})
+
+app.use('/api/products', productsRouter)
+app.use('/api/carts', cartsRouter)
 
 const PORT = 8080
 server.listen(PORT, () => {
