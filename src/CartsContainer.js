@@ -1,4 +1,4 @@
-const fs = require('fs')
+import fs from 'fs'
 
 class CartsContainer {
     fileName
@@ -109,4 +109,4 @@ class CartsContainer {
     }
 }
 
-module.exports = CartsContainer
+export default CartsContainer

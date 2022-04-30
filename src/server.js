@@ -1,10 +1,14 @@
-const express = require('express')
-const ProductsContainer = require('./ProductsContainer')
-const CartsContainer = require('./CartsContainer')
-const { engine } = require('express-handlebars')
-const http = require('http')
-const { Server } = require('socket.io')
+import express from 'express'
+import ProductsContainer from './ProductsContainer.js'
+import CartsContainer from './CartsContainer.js'
+import { engine } from 'express-handlebars'
+import http from 'http'
+import { Server } from 'socket.io'
+import path from 'path'
+import {fileURLToPath} from 'url'
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const productsContainer = new ProductsContainer('products.txt')
 const cartsContainer = new CartsContainer('carts.txt')
 const app = express()
